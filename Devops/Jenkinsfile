@@ -95,17 +95,65 @@ pipeline {
         stage('Kubernetes Deploy') {
             steps {
                 sh '''
+                    echo "Deploying image:"
+                    echo "anaha2211/devsecops-demo:build-${BUILD_NUMBER}"
+
                     kubectl --kubeconfig /tmp/jenkins-config \
                       -n devsecops \
                       set image deployment/devsecops-demo \
                       devsecops-demo=anaha2211/devsecops-demo:build-${BUILD_NUMBER}
 
+                    echo "Waiting for Kubernetes rollout..."
+
                     kubectl --kubeconfig /tmp/jenkins-config \
                       -n devsecops \
                       rollout status deployment/devsecops-demo \
                       --timeout=120s
+
+                    echo "Kubernetes deployment successful."
                 '''
             }
+        }
+
+        stage('Application Verification') {
+            steps {
+                sh '''
+                    echo "Verifying application inside Kubernetes pod..."
+
+                    RESPONSE=$(kubectl --kubeconfig /tmp/jenkins-config \
+                      -n devsecops \
+                      exec deployment/devsecops-demo -- \
+                      curl -s http://localhost:8081/hello)
+
+                    echo "Application Response:"
+                    echo "$RESPONSE"
+
+                    if [ "$RESPONSE" != "Hello from DevSecOps Demo" ]; then
+                        echo "Application verification failed."
+                        exit 1
+                    fi
+
+                    echo "Application verification successful."
+                    echo ""
+                    echo "Application URL:"
+                    echo "http://localhost:8081/hello"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '=========================================='
+            echo 'DEVSECOPS PIPELINE COMPLETED SUCCESSFULLY'
+            echo '=========================================='
+            echo "Application URL: http://localhost:8081/hello"
+        }
+
+        failure {
+            echo '=========================================='
+            echo 'DEVSECOPS PIPELINE FAILED'
+            echo '=========================================='
         }
     }
 }
