@@ -66,7 +66,7 @@ pipeline {
                     )]) {
                         sh '''
                             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                            docker push anaha2211/devsecops-demo:${imageTag}
+                            docker push anaha2211/devsecops-demo:build-${BUILD_NUMBER}
                         '''
                     }
                 }
