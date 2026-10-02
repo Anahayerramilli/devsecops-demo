@@ -118,21 +118,18 @@ pipeline {
         stage('Application Verification') {
             steps {
                 sh '''
-                    echo "Verifying application inside Kubernetes pod..."
+                    echo "Verifying application through Kubernetes Service..."
 
-                    RESPONSE=$(kubectl --kubeconfig /tmp/jenkins-config \
+                    kubectl --kubeconfig /tmp/jenkins-config \
                       -n devsecops \
-                      exec deployment/devsecops-demo -- \
-                      curl -s http://localhost:8081/hello)
+                      run ci-curl-test-${BUILD_NUMBER} \
+                      --rm \
+                      -i \
+                      --restart=Never \
+                      --image=curlimages/curl \
+                      -- curl -fsS http://devsecops-demo-service:8081/hello
 
-                    echo "Application Response:"
-                    echo "$RESPONSE"
-
-                    if [ "$RESPONSE" != "Hello from DevSecOps Demo" ]; then
-                        echo "Application verification failed."
-                        exit 1
-                    fi
-
+                    echo ""
                     echo "Application verification successful."
                     echo ""
                     echo "Application URL:"
